@@ -1,0 +1,75 @@
+version: '3.3'
+
+services:
+    nginx:
+        image: nginx:latest
+        container_name: nginx
+        ports:
+          - '${INTERFACE}:8080:80'
+#         - '${INTERFACE}:443:443'
+        volumes:
+          - ./Nginx/core:/etc/nginx/conf.d
+          - ./Nginx/www/html:/var/www/html
+          - ./Nginx/Logs:/var/log/nginx/
+          - ./Nginx/html:/usr/share/nginx/html/
+        links:
+          - php
+        networks:
+          - bitrix
+
+    mysql:
+        build: ./MySQL
+        image: mysql:latest
+        ports:
+          - '${INTERFACE}:3306:3306'
+        container_name: mysql
+        environment:
+          - MYSQL_ROOT_PASSWORD=rootbitrix
+
+        command: mysqld --sql-mode=""
+        volumes:
+          - ./MySQL/db:/var/lib/mysql
+        networks:
+          - bitrix
+
+    php:
+        build: ./PHP
+        image: php:7.0-fpm
+        container_name: php-fpm
+        volumes:
+          - ./Nginx/www/html:/var/www/html
+        links:
+          - mysql
+        networks:
+          - bitrix
+
+    master:
+        build: ./jmeter/jmeter-master
+        container_name: master
+        tty: true
+        networks:
+          - bitrix
+
+    slave1:
+        build: ./jmeter/jmeter-slave
+        networks:
+         - bitrix
+
+    slave2:
+        build: ./jmeter/jmeter-slave
+        networks:
+         - bitrix
+
+    slave3:
+        build: ./jmeter/jmeter-slave
+        networks:
+         - bitrix
+
+
+networks:
+  bitrix: 
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.100.0.0/24
